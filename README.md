@@ -1,3 +1,5 @@
+# WARNING - PRE ALPHA. CODE MIGHT NOT EVEN BE WRITTEN!
+
 # letterbox32
 This sketch will let you know when you get snail mail.
 **WORK IN PROGRESS. Feel free to help out.**
