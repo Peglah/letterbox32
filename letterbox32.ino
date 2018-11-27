@@ -53,7 +53,7 @@ void connectWifi() {
     Serial.print("Connecting to ");
     Serial.println(ssid);
 
-    WiFi.hostname("letterbox32");
+//    WiFi.hostname("letterbox32");
     WiFi.begin(ssid, wifiPassword);
 
     while (WiFi.status() != WL_CONNECTED) {
