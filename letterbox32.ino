@@ -41,8 +41,8 @@ const int hallOffset = 0;       // Your normal value for when the magnet is clos
 
 int hallValue = 0;
 float hallTime = triggerDelay;
-bool letterboxOpen = false;
-bool lastLetterboxOpen = false;
+bool letterboxOpen = true;
+bool lastLetterboxOpen = true;
 
 unsigned long wifiPreviousMillis = 0;   // will store last time Wifi was checked.
 const long wifiInterval = 60 * 1000;        // interval at which to check if Wifi is down (milliseconds).
@@ -123,6 +123,7 @@ void sendNotification() {
 
 void setup() {
   Serial.begin(115200);
+  //while (!Serial);
   delay(10);
 
   // We start by connecting to a WiFi network
@@ -133,7 +134,7 @@ void loop() {
   delay(loopDelay);
   hallTime += (float)loopDelay / 1000;
 
-  /*
+  /*  UNTESTED
     // Every 'wifiInterval' (60 sec default), check for Wifi status and connect if disconnected.
     if ((unsigned long)(millis() - wifiPreviousMillis) >= wifiInterval) {
       if (WiFi.status() != WL_CONNECTED) {connectWifi();}
@@ -149,31 +150,38 @@ void loop() {
   Serial.print("Hall sensor value, should be normally 0: ");
   Serial.println(hallValue);
 
-  if (hallTime >= triggerDelay) {
-    // Check if the letterbox is +/- your trigger value and save to a boolean.
-    if ((hallValue > hallTrigger || hallValue < -hallTrigger)) {
-      letterboxOpen = true;
-    }
-
-    if (letterboxOpen == true && lastLetterboxOpen == false) {
-      //sendNotification();
-      //publishMQTT();
-      Serial.println("Letterbox OPEN!");
-    }
-
-    if (letterboxOpen == true && lastLetterboxOpen == true) {
-      Serial.println("Still open...");
-    }
-
-    if (letterboxOpen == false && lastLetterboxOpen == true) {
-      Serial.println("Letterbox closed. Arming again");
-    }
-    
-    if (letterboxOpen == false && lastLetterboxOpen == false) {
-      Serial.println("Still closed...");
-    }
-    
-    hallTime = 0;
-    lastLetterboxOpen = letterboxOpen;
+  // Check if the letterbox is +/- your trigger value and save to a boolean.
+  if ((hallValue > hallTrigger || hallValue < -hallTrigger)) {
+    letterboxOpen = true;
   }
+  else {
+    letterboxOpen = false;
+  }
+  
+  if (letterboxOpen == true && lastLetterboxOpen == false) {
+    if (hallTime >= triggerDelay) {
+      sendNotification();
+      publishMQTT();
+      Serial.println("Letterbox OPEN!");
+      hallTime = 0;
+    }
+    else {
+      Serial.println("Letterbox opened but messege is suppressed due to triggerDelay.");
+    }
+  }
+  
+  // Output for debugging.
+  if (letterboxOpen == true && lastLetterboxOpen == true) {
+    Serial.println("Still open...");
+  }
+
+  if (letterboxOpen == false && lastLetterboxOpen == true) {
+    Serial.println("Letterbox closed. Arming...");
+  }
+
+  if (letterboxOpen == false && lastLetterboxOpen == false) {
+    Serial.println("Still closed...");
+  }
+
+  lastLetterboxOpen = letterboxOpen;
 }
