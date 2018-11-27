@@ -1,8 +1,6 @@
-# WARNING - PRE ALPHA. CODE MIGHT NOT EVEN BE WRITTEN!
-
 # letterbox32
 This sketch will let you know when you get snail mail.
-**WORK IN PROGRESS. Feel free to help out.**
+**Won't reconnect on Wifi loss, I think.**
 
 # Description
 * [Adafruit HUZZAH32 – ESP32 Feather Board](https://www.adafruit.com/product/3405)
