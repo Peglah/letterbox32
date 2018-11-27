@@ -1,5 +1,6 @@
 # letterbox32
 This sketch will let you know when you get snail mail.
+
 **Won't reconnect on Wifi loss, I think.**
 
 # Description
