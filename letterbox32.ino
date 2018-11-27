@@ -1,17 +1,17 @@
 /*
- *  WiFiClient code from:
- *  https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/examples/WiFiClient/WiFiClient.ino
- *
- *  HallSensor code from:
- *  https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/HallSensor/HallSensor.ino
- *
- *  MQTT code from:
- *  https://github.com/knolleary/pubsubclient/blob/master/examples/mqtt_auth/mqtt_auth.ino
- *
- *  Blink Without Delay from:
- *  https://www.arduino.cc/en/Tutorial/BlinkWithoutDelay
- *
- */
+    WiFiClient code from:
+    https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/examples/WiFiClient/WiFiClient.ino
+
+    HallSensor code from:
+    https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/HallSensor/HallSensor.ino
+
+    MQTT code from:
+    https://github.com/knolleary/pubsubclient/blob/master/examples/mqtt_auth/mqtt_auth.ino
+
+    Blink Without Delay from:
+    https://www.arduino.cc/en/Tutorial/BlinkWithoutDelay
+
+*/
 
 #include <WiFi.h>
 #include <PubSubClient.h>
@@ -41,119 +41,139 @@ const int hallOffset = 0;       // Your normal value for when the magnet is clos
 
 int hallValue = 0;
 float hallTime = triggerDelay;
+bool letterboxOpen = false;
+bool lastLetterboxOpen = false;
 
 unsigned long wifiPreviousMillis = 0;   // will store last time Wifi was checked.
-const long wifiInterval = 60000;        // interval at which to check if Wifi is down (milliseconds).
+const long wifiInterval = 60 * 1000;        // interval at which to check if Wifi is down (milliseconds).
 
 WiFiClient wifiClient;
 
 void connectWifi() {
-    Serial.println();
-    Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
+  Serial.println();
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
 
-//    WiFi.hostname("letterbox32");
-    WiFi.begin(ssid, wifiPassword);
+  //    WiFi.hostname("letterbox32");
+  WiFi.begin(ssid, wifiPassword);
 
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
 
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
 }
 
 void publishMQTT() {
-    PubSubClient mqttClient(wifiClient);
-    mqttClient.setServer(mqttIp,1883);
-    if (mqttClient.connect(clientID, mqttUsername, mqttPassword)) {
-        mqttClient.publish(outTopic, outPayload);
-    }
+  PubSubClient mqttClient(wifiClient);
+  mqttClient.setServer(mqttIp, 1883);
+  if (mqttClient.connect(clientID, mqttUsername, mqttPassword)) {
+    mqttClient.publish(outTopic, outPayload);
+  }
 }
 
 void sendNotification() {
-    Serial.print("connecting to ");
-    Serial.println(host);
+  Serial.print("connecting to ");
+  Serial.println(host);
 
-    // Use WiFiClient class to create TCP connections
-    
-    const int httpPort = 80;
-    if (!wifiClient.connect(host, httpPort)) {
-        Serial.println("connection failed");
-        return;
+  // Use WiFiClient class to create TCP connections
+
+  const int httpPort = 80;
+  if (!wifiClient.connect(host, httpPort)) {
+    Serial.println("connection failed");
+    return;
+  }
+
+  // We now create a URI for the request
+  String url = "/trigger/";
+  url += eventName;
+  url += "/with/key/";
+  url += privateKey;
+
+  Serial.print("Requesting URL: ");
+  Serial.println(url);
+
+  // This will send the request to the server
+  wifiClient.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                   "Host: " + host + "\r\n" +
+                   "Connection: close\r\n\r\n");
+  unsigned long timeout = millis();
+  while (wifiClient.available() == 0) {
+    if (millis() - timeout > 5000) {
+      Serial.println(">>> Client Timeout !");
+      wifiClient.stop();
+      return;
     }
+  }
 
-    // We now create a URI for the request
-    String url = "/trigger/";
-    url += eventName;
-    url += "/with/key/";
-    url += privateKey;
+  // Read all the lines of the reply from server and print them to Serial
+  while (wifiClient.available()) {
+    String line = wifiClient.readStringUntil('\r');
+    Serial.print(line);
+  }
 
-    Serial.print("Requesting URL: ");
-    Serial.println(url);
-
-    // This will send the request to the server
-    wifiClient.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                 "Host: " + host + "\r\n" +
-                 "Connection: close\r\n\r\n");
-    unsigned long timeout = millis();
-    while (wifiClient.available() == 0) {
-        if (millis() - timeout > 5000) {
-            Serial.println(">>> Client Timeout !");
-            wifiClient.stop();
-            return;
-        }
-    }
-
-    // Read all the lines of the reply from server and print them to Serial
-    while(wifiClient.available()) {
-        String line = wifiClient.readStringUntil('\r');
-        Serial.print(line);
-    }
-
-    Serial.println();
-    Serial.println("closing connection");
+  Serial.println();
+  Serial.println("closing connection");
 }
 
 void setup() {
-    Serial.begin(115200);
-    delay(10);
+  Serial.begin(115200);
+  delay(10);
 
-    // We start by connecting to a WiFi network
-    connectWifi();
+  // We start by connecting to a WiFi network
+  connectWifi();
 }
 
 void loop() {
-    delay(loopDelay);
-    hallTime += (float)loopDelay/1000;
+  delay(loopDelay);
+  hallTime += (float)loopDelay / 1000;
 
-    /*
+  /*
     // Every 'wifiInterval' (60 sec default), check for Wifi status and connect if disconnected.
     if ((unsigned long)(millis() - wifiPreviousMillis) >= wifiInterval) {
-        if (WiFi.status() != WL_CONNECTED) {connectWifi();}
-        wifiPreviousMillis = millis();
+      if (WiFi.status() != WL_CONNECTED) {connectWifi();}
+      wifiPreviousMillis = millis();
     }
-    */
-    
-    Serial.print("Time since last trigger: ");
-    Serial.println(hallTime);
-    
-    hallValue = hallRead() - hallOffset;
-    
-    Serial.print("Hall sensor value, should be normally 0: ");
-    Serial.println(hallValue);
-    
-    if ((hallValue > hallTrigger || hallValue < -hallTrigger) && hallTime >= triggerDelay) {
-        
-        Serial.println("Letterbox opened! Sending notification!");
-        
-        //sendNotification();
-        publishMQTT();
-        
-        hallTime = 0;
+  */
+
+  Serial.print("Time since last trigger: ");
+  Serial.println(hallTime);
+
+  hallValue = hallRead() - hallOffset;  // Read and normalize the hall sensor value. Should be 0 when not triggered
+
+  Serial.print("Hall sensor value, should be normally 0: ");
+  Serial.println(hallValue);
+
+  if (hallTime >= triggerDelay) {
+    // Check if the letterbox is +/- your trigger value and save to a boolean.
+    if ((hallValue > hallTrigger || hallValue < -hallTrigger)) {
+      letterboxOpen = true;
     }
+
+    if (letterboxOpen == true && lastLetterboxOpen == false) {
+      //sendNotification();
+      //publishMQTT();
+      Serial.println("Letterbox OPEN!");
+    }
+
+    if (letterboxOpen == true && lastLetterboxOpen == true) {
+      Serial.println("Still open...");
+    }
+
+    if (letterboxOpen == false && lastLetterboxOpen == true) {
+      Serial.println("Letterbox closed. Arming again");
+    }
+    
+    if (letterboxOpen == false && lastLetterboxOpen == false) {
+      Serial.println("Still closed...");
+    }
+    
+    hallTime = 0;
+    lastLetterboxOpen = letterboxOpen;
+  }
 }
