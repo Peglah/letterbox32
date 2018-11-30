@@ -54,9 +54,9 @@ void connectWifi() {
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
-
-  //    WiFi.hostname("letterbox32");
+  
   WiFi.begin(ssid, wifiPassword);
+  //WiFi.hostname("letterbox32");
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -144,7 +144,7 @@ void loop() {
 
   Serial.print("Time since last trigger: ");
   Serial.println(hallTime);
-
+  
   hallValue = hallRead() - hallOffset;  // Read and normalize the hall sensor value. Should be 0 when not triggered
 
   Serial.print("Hall sensor value, should be normally 0: ");
