@@ -17,21 +17,24 @@
 #include <PubSubClient.h>
 
 // Network
-const char* ssid = "your-wifi";
-const char* wifiPassword = "wifi-password";
+const char* ssid = "your_wifi";
+const char* wifiPassword = "wifi_password";
 
 // IFTTT
 const char* host = "maker.ifttt.com";
-const char* eventName   = "your-event-name";
-const char* privateKey = "your-key";
+const char* eventName   = "your_event_name";
+const char* privateKey = "your_key";
 
 // MQTT
-const char* mqttIp = "mqtt-server";    // IP to MQTT broker
-const char* clientID = "client-id";  // The client ID to use when connecting to the server.
+const char* mqttIp = "mqtt_server";    // IP to MQTT broker (Set to default port 1883)
+const char* clientID = "client_id";  // The client ID to use when connecting to the server.
 const char* mqttUsername = "username"; // The username to use. If NULL, no username or password is used (const char[]).
 const char* mqttPassword = "password"; // The password to use. If NULL, no password is used (const char[]).
 char* outTopic = "topic";              // The topic to publish to.
 char* outPayload = "message";          // The message to publish.
+
+// MQTT Letterbox status
+char* outTopicStatus = "status_topic";              // The status topic to publish to.
 
 // Hall sensor configuration/calibration.
 const int hallTrigger = 200;     // Choose a +- value that fits your needs, according to your magnet.
@@ -69,11 +72,11 @@ void connectWifi() {
   Serial.println(WiFi.localIP());
 }
 
-void publishMQTT() {
+void publishMQTT(char* myTopic, char* myPayload) {
   PubSubClient mqttClient(wifiClient);
   mqttClient.setServer(mqttIp, 1883);
   if (mqttClient.connect(clientID, mqttUsername, mqttPassword)) {
-    mqttClient.publish(outTopic, outPayload);
+    mqttClient.publish(myTopic, myPayload);
   }
 }
 
@@ -161,7 +164,7 @@ void loop() {
   if (letterboxOpen == true && lastLetterboxOpen == false) {
     if (hallTime >= triggerDelay) {
       sendNotification();
-      publishMQTT();
+      publishMQTT(outTopic, outPayload);
       Serial.println("Letterbox OPEN!");
       hallTime = 0;
     }
@@ -173,14 +176,17 @@ void loop() {
   // Output for debugging.
   if (letterboxOpen == true && lastLetterboxOpen == true) {
     Serial.println("Still open...");
+    publishMQTT(outTopicStatus, "Still open...");
   }
 
   if (letterboxOpen == false && lastLetterboxOpen == true) {
     Serial.println("Letterbox closed. Arming...");
+    publishMQTT(outTopicStatus, "Letterbox closed. Arming...");
   }
 
   if (letterboxOpen == false && lastLetterboxOpen == false) {
     Serial.println("Still closed...");
+    publishMQTT(outTopicStatus, "Still closed...");
   }
 
   lastLetterboxOpen = letterboxOpen;
