@@ -50,6 +50,9 @@ bool lastLetterboxOpen = true;
 unsigned long wifiPreviousMillis = 0;   // will store last time Wifi was checked.
 const long wifiInterval = 60 * 1000;        // interval at which to check if Wifi is down (milliseconds).
 
+const unsigned long hourMillis = 600000;  // interval at which to run (milliseconds)
+unsigned long hourPreviousMillis = 0;   // will store last time an hour passed.
+
 WiFiClient wifiClient;
 
 void connectWifi() {
@@ -57,7 +60,7 @@ void connectWifi() {
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
-  
+
   WiFi.begin(ssid, wifiPassword);
   //WiFi.hostname("letterbox32");
 
@@ -147,7 +150,7 @@ void loop() {
 
   Serial.print("Time since last trigger: ");
   Serial.println(hallTime);
-  
+
   hallValue = hallRead() - hallOffset;  // Read and normalize the hall sensor value. Should be 0 when not triggered
 
   Serial.print("Hall sensor value, should be normally 0: ");
@@ -160,7 +163,7 @@ void loop() {
   else {
     letterboxOpen = false;
   }
-  
+
   if (letterboxOpen == true && lastLetterboxOpen == false) {
     if (hallTime >= triggerDelay) {
       sendNotification();
@@ -172,21 +175,26 @@ void loop() {
       Serial.println("Letterbox opened but messege is suppressed due to triggerDelay.");
     }
   }
-  
+
   // Output for debugging.
   if (letterboxOpen == true && lastLetterboxOpen == true) {
     Serial.println("Still open...");
-    publishMQTT(outTopicStatus, "Still open...");
   }
 
   if (letterboxOpen == false && lastLetterboxOpen == true) {
     Serial.println("Letterbox closed. Arming...");
-    publishMQTT(outTopicStatus, "Letterbox closed. Arming...");
   }
 
   if (letterboxOpen == false && lastLetterboxOpen == false) {
     Serial.println("Still closed...");
-    publishMQTT(outTopicStatus, "Still closed...");
+  }
+
+  // Send hallValue to MQTT every hour.
+  if (millis() - hourPreviousMillis >= hourMillis) {
+    char intPayload[16];
+    itoa(hallValue, intPayload, 10);
+    publishMQTT(outTopicStatus, intPayload);
+    hourPreviousMillis = millis();
   }
 
   lastLetterboxOpen = letterboxOpen;
