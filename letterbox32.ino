@@ -50,7 +50,7 @@ bool lastLetterboxOpen = true;
 unsigned long wifiPreviousMillis = 0;   // will store last time Wifi was checked.
 const long wifiInterval = 60 * 1000;        // interval at which to check if Wifi is down (milliseconds).
 
-const unsigned long hourMillis = 600000;  // interval at which to run (milliseconds)
+const unsigned long hourMillis = 3600000;  // interval at which to run (milliseconds)
 unsigned long hourPreviousMillis = 0;   // will store last time an hour passed.
 
 WiFiClient wifiClient;
