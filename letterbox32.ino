@@ -62,7 +62,7 @@ void connectWifi() {
   Serial.println(ssid);
 
   WiFi.begin(ssid, wifiPassword);
-  //WiFi.hostname("letterbox32");
+  WiFi.setHostname("letterbox32");
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
